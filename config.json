@@ -1,0 +1,25 @@
+{
+    "streamer": {
+        "scopes": "channel:read:redemptions channel:manage:redemptions"
+    },
+    "chat_bot": {
+        "scopes": "chat:read chat:edit user:write:chat"
+    },
+    "twitch_username": "eilyxan",
+    "rewards": {
+        "normal_vote": "8552590d-cf2f-4dfa-b37e-cd69ef30ea58",
+        "super_vote": "670fc29b-c940-4c60-a9cc-b9b067b58684",
+        "ultra_vote": "4d0f556d-dfb9-4d94-a919-0bf53b961487"
+    },
+    "spreadsheet_id": "1rIVCDXx5KwqF42F2Yq11k5UQeF_cfNY3KVcFSmZxw80",
+    "min_match_score": 80,
+    "normal_vote_weight": 1,
+    "super_vote_weight": 10,
+    "ultra_vote_weight": 25,
+    "database": {
+        "enabled": true,
+        "sync_interval": 5,
+        "use_sheets_as_view": true
+    },
+    "broadcaster_id": "427889102"
+}

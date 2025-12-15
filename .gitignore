@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Sensitive files
+secrets.json
+Vote tracking.json
+*.json.bak
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+votes.db
+
+# Logs and data
+*.log
+*.csv
+inacurate_games.csv
+Vote_IDs.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
