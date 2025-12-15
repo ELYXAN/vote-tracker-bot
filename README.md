@@ -193,13 +193,24 @@ This will show all your Channel Point rewards with their IDs.
 ### Start the Bot
 
 #### Using the Startup Script (Recommended)
+
+**Linux/macOS:**
 ```bash
 ./start.sh
 ```
 
+**Windows 10:**
+```batch
+start.bat
+```
+
 #### Manual Start
 ```bash
+# Linux/macOS
 python3 main.py
+
+# Windows
+python main.py
 ```
 
 ### First-Time Authorization
