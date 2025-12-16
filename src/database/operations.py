@@ -172,17 +172,38 @@ async def get_pending_changes():
         return result[0] if result else 0
 
 
-async def mark_synced():
+async def mark_synced(spreadsheet_id=None, spreadsheet_hash=None):
     """Markiert, dass ein Sync durchgeführt wurde"""
     async with aiosqlite.connect(DB_FILE) as db:
-        await db.execute("""
-            UPDATE sync_status 
-            SET last_sync = CURRENT_TIMESTAMP,
-                sync_count = sync_count + 1,
-                pending_changes = 0
-            WHERE id = 1
-        """)
+        if spreadsheet_id and spreadsheet_hash:
+            await db.execute("""
+                UPDATE sync_status 
+                SET last_sync = CURRENT_TIMESTAMP,
+                    sync_count = sync_count + 1,
+                    pending_changes = 0,
+                    spreadsheet_id = ?,
+                    spreadsheet_hash = ?
+                WHERE id = 1
+            """, (spreadsheet_id, spreadsheet_hash))
+        else:
+            await db.execute("""
+                UPDATE sync_status 
+                SET last_sync = CURRENT_TIMESTAMP,
+                    sync_count = sync_count + 1,
+                    pending_changes = 0
+                WHERE id = 1
+            """)
         await db.commit()
+
+
+async def get_stored_spreadsheet_info():
+    """Gibt die gespeicherte Spreadsheet-ID und Hash zurück"""
+    async with aiosqlite.connect(DB_FILE) as db:
+        cursor = await db.execute("SELECT spreadsheet_id, spreadsheet_hash FROM sync_status WHERE id = 1")
+        result = await cursor.fetchone()
+        if result:
+            return {'spreadsheet_id': result[0], 'spreadsheet_hash': result[1]}
+        return {'spreadsheet_id': None, 'spreadsheet_hash': None}
 
 
 async def get_vote_statistics(game_name: str = None):

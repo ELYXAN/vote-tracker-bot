@@ -90,14 +90,33 @@ async def listen_to_redemptions(config):
                 tasks = [check_reward(vt, rid) for vt, rid in rewards_to_check]
                 results = await asyncio.gather(*tasks)
                 
-                # Process all found redemptions
+                # Process all found redemptions and deduplicate by vote_id
+                seen_vote_ids = set()
                 for redemptions in results:
                     for redemption_data in redemptions:
+                        vote_id = redemption_data['vote_id']
+                        
+                        # Skip if we've already seen this vote_id in this batch
+                        if vote_id in seen_vote_ids:
+                            continue
+                        
+                        # Mark as processed IMMEDIATELY to prevent duplicate processing
+                        # (even before it's added to queue, to prevent race conditions)
+                        cache['processed_ids'].add(vote_id)
+                        seen_vote_ids.add(vote_id)
+                        
                         vote_type_upper = redemption_data['vote_type'].upper()
                         user = redemption_data['user']
                         game = redemption_data['game']
-                        print(info(f"[{vote_type_upper}] Neuer Vote von") + f" {highlight(user)}: {highlight(game)}")
+                        # Print mit newline am Anfang um nicht mit anderen Prompts zu interferieren
+                        print(f"\n{info(f'[{vote_type_upper}] Neuer Vote von')} {highlight(user)}: {highlight(game)}")
                         await vote_queue.put(redemption_data)
+                
+                # Save processed IDs to disk
+                if seen_vote_ids:
+                    from src.utils.storage import save_processed_id
+                    for vote_id in seen_vote_ids:
+                        cache['processed_ids'] = save_processed_id(cache['processed_ids'], vote_id)
 
                 await asyncio.sleep(1)  # Reduced from 5s to 1s for faster response
 
@@ -127,9 +146,16 @@ async def fulfill_vote(session, config, reward_id, vote_id):
         async with session.patch(redeem_url, headers=headers, json=payload, params=params) as response:
             if response.status == 200:
                 print(success(f"Vote {vote_id} erfolgreich als FULFILLED markiert."))
+                # Vote ID is already in processed_ids (added when detected), just save to disk
                 cache['processed_ids'] = save_processed_id(cache['processed_ids'], vote_id)
             elif response.status == 400 and "redemption is already" in await response.text():
                 print(info(f"Vote {vote_id} war bereits als FULFILLED/CANCELED markiert."))
+                # Vote ID is already in processed_ids (added when detected), just save to disk
+                cache['processed_ids'] = save_processed_id(cache['processed_ids'], vote_id)
+            elif response.status == 404:
+                # Vote already fulfilled or doesn't exist - mark as processed to prevent retries
+                print(info(f"Vote {vote_id} bereits erfüllt oder nicht gefunden (404)."))
+                cache['processed_ids'].add(vote_id)
                 cache['processed_ids'] = save_processed_id(cache['processed_ids'], vote_id)
             elif response.status == 403:
                 print(error(f"Fehler beim Erfüllen von Vote {vote_id} (403 Forbidden)."))

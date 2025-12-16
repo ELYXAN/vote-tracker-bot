@@ -37,6 +37,7 @@ async def init_database():
         """)
         
         # Sync-Status: Verfolgt, wann zuletzt mit Sheets synchronisiert wurde
+        # Erstelle Tabelle mit Basis-Spalten (für Kompatibilität mit alten Datenbanken)
         await db.execute("""
             CREATE TABLE IF NOT EXISTS sync_status (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -46,11 +47,43 @@ async def init_database():
             )
         """)
         
+        # Migration: Füge neue Spalten hinzu falls sie fehlen (für bestehende Datenbanken)
+        # Prüfe ob Spalten existieren, bevor wir sie hinzufügen
+        cursor = await db.execute("PRAGMA table_info(sync_status)")
+        columns = await cursor.fetchall()
+        column_names = [col[1] for col in columns]
+        
+        if 'spreadsheet_id' not in column_names:
+            try:
+                await db.execute("ALTER TABLE sync_status ADD COLUMN spreadsheet_id TEXT")
+                await db.commit()  # Commit nach ALTER TABLE
+            except sqlite3.OperationalError as e:
+                print(f"⚠️  Konnte Spalte 'spreadsheet_id' nicht hinzufügen: {e}")
+        
+        if 'spreadsheet_hash' not in column_names:
+            try:
+                await db.execute("ALTER TABLE sync_status ADD COLUMN spreadsheet_hash TEXT")
+                await db.commit()  # Commit nach ALTER TABLE
+            except sqlite3.OperationalError as e:
+                print(f"⚠️  Konnte Spalte 'spreadsheet_hash' nicht hinzufügen: {e}")
+        
         # Initialen Sync-Status einfügen falls nicht vorhanden
-        await db.execute("""
-            INSERT OR IGNORE INTO sync_status (id, last_sync, sync_count, pending_changes)
-            VALUES (1, NULL, 0, 0)
-        """)
+        # Prüfe welche Spalten jetzt vorhanden sind für INSERT
+        cursor = await db.execute("PRAGMA table_info(sync_status)")
+        columns = await cursor.fetchall()
+        column_names = [col[1] for col in columns]
+        
+        if 'spreadsheet_id' in column_names and 'spreadsheet_hash' in column_names:
+            await db.execute("""
+                INSERT OR IGNORE INTO sync_status (id, last_sync, sync_count, pending_changes, spreadsheet_id, spreadsheet_hash)
+                VALUES (1, NULL, 0, 0, NULL, NULL)
+            """)
+        else:
+            # Fallback für alte Schema-Version (falls Migration fehlschlug)
+            await db.execute("""
+                INSERT OR IGNORE INTO sync_status (id, last_sync, sync_count, pending_changes)
+                VALUES (1, NULL, 0, 0)
+            """)
         
         # Indizes für Performance
         await db.execute("CREATE INDEX IF NOT EXISTS idx_games_votes ON games(votes DESC)")

@@ -10,6 +10,7 @@ from src.twitch.redemptions import cache
 from src.voting.ranking import calculate_rank_and_notify
 from src.database.operations import add_or_update_vote, get_games_list
 from src.utils.colors import success, error, warning, info, highlight, prompt, dim
+import sys
 
 
 async def manual_vote_input(config):
@@ -26,10 +27,15 @@ async def manual_vote_input(config):
     async with aiohttp.ClientSession() as session:
         while True:
             try:
-                await asyncio.sleep(0.1)
+                # Warte kurz und flush stdout um sicherzustellen dass alle async Nachrichten
+                # (z.B. von automatischer Vote-Verarbeitung) fertig sind
+                await asyncio.sleep(0.2)
+                sys.stdout.flush()
                 
                 # Spielname eingeben
+                print()  # Leerzeile für bessere Trennung
                 print(dim("-"*60))
+                sys.stdout.flush()  # Flush vor input() damit Prompt sauber erscheint
                 game_input = await asyncio.get_event_loop().run_in_executor(
                     None, 
                     input, 
@@ -135,11 +141,13 @@ async def manual_vote_input(config):
                 
                 # Warte länger damit alle async Ausgaben (Sync-Messages, Chat-Nachricht, etc.) sichtbar sind
                 # bevor der nächste Prompt erscheint
-                await asyncio.sleep(0.6)
+                await asyncio.sleep(0.8)
                 
                 # Flush stdout um sicherzustellen dass alle Ausgaben geschrieben sind
-                import sys
                 sys.stdout.flush()
+                
+                # Explizit neue Zeile und Separator für nächsten Prompt
+                print()  # Leerzeile nach Erfolgsmeldung
                 
             except KeyboardInterrupt:
                 print(f"\n\n{info('→ Manuelle Eingabe durch Benutzer abgebrochen.')}")

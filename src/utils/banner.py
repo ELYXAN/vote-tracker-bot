@@ -13,5 +13,5 @@ def banner():
 ╚██████╔╝╚██████╔╝   ██║   ███████╗       ██║   ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██║  ██║
  ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝       ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
 
-Version 3.0 - Made by: ELYXAN / KUS_SWAT_ - Async + OAuth Fix - Modular Architecture
+Version 3.1 - Made by: ELYXAN / KUS_SWAT_ - Async + OAuth Fix - Modular Architecture - Database
     """)

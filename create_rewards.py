@@ -77,9 +77,15 @@ async def list_existing_rewards(session, config):
         async with session.get(url, headers=headers, params=params) as response:
             if response.status == 200:
                 data = await response.json()
-                return data.get('data', [])
+                rewards = data.get('data', [])
+                return rewards if rewards is not None else []
+            else:
+                print(f"⚠️  Konnte Rewards nicht abrufen: {response.status}")
+                return []
     except Exception as e:
         print(f"Fehler beim Abrufen bestehender Rewards: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 
@@ -129,6 +135,11 @@ async def create_vote_rewards():
         # Check for existing rewards that match our names
         print("→ Prüfe bestehende Rewards...")
         existing_rewards = await list_existing_rewards(session, config)
+        
+        # Ensure existing_rewards is a list (defensive programming)
+        if existing_rewards is None:
+            existing_rewards = []
+            print("⚠️  Konnte Rewards nicht abrufen, gehe von leerer Liste aus.")
         
         # Define rewards to create
         rewards_to_create = [
@@ -235,7 +246,8 @@ async def create_vote_rewards():
             print("💡 Die neuen Reward IDs wurden in config.json gespeichert.")
             print("   Du kannst den Bot jetzt starten.")
         else:
-            if skipped_rewards:
+            # Check if rewards were skipped (found but not deleted)
+            if rewards_to_delete and not created_rewards:
                 print("=" * 60)
                 print("ℹ️  Alle Rewards existieren bereits.")
                 print("=" * 60)

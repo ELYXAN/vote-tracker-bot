@@ -64,7 +64,8 @@ vote-tracker-bot/
     ├── database/                     # ⚡ Database layer
     │   ├── models.py                 # DB schema and initialization
     │   ├── operations.py             # CRUD operations
-    │   └── sync_worker.py            # Async Sheets sync worker
+    │   ├── sync_worker.py            # Async Sheets sync worker
+    │   └── safety_check.py           # Safety checks to prevent data loss
     │
     ├── twitch/                       # Twitch API integration
     │   ├── redemptions.py            # Channel Points listener
@@ -247,6 +248,81 @@ Your spreadsheet should have this format:
 - Header in row 1
 
 The bot automatically syncs the database to this format every 5 seconds (configurable).
+
+## 🔒 Database Safety Features
+
+### Preventing Data Loss
+
+The bot includes comprehensive safety checks to prevent accidental data loss when copying database files between systems:
+
+#### Spreadsheet ID Tracking
+- The database stores the `spreadsheet_id` it was last synced with
+- If you copy a database file to a system with a different spreadsheet, the bot will detect the mismatch
+- **Automatic Protection**: Sync is blocked if spreadsheet IDs don't match
+
+#### Data Hash Verification
+- Each sync stores a hash of the data to detect changes
+- The bot compares database and spreadsheet data before syncing
+- **Warning System**: If spreadsheet has significantly more data, sync is blocked with a warning
+
+#### Migration Safety
+- On first run, the bot migrates data from Google Sheets to the database
+- If a database file is copied from another system, migration is skipped
+- **Detection**: The bot detects copied databases and warns you
+
+### What Happens When You Copy a Database or Change Spreadsheet ID?
+
+If you copy `votes.db` from System A to System B (with a different spreadsheet), or change the `spreadsheet_id` in `config.json`:
+
+1. **Startup Detection**: The bot detects the spreadsheet ID mismatch
+2. **Warning Display**: Shows a clear warning with comparison statistics
+3. **Interactive Prompt**: Asks if you want to delete and reinitialize the database
+4. **User Choice**:
+   - **Yes**: Database is deleted, new database initialized, data migrated from new spreadsheet
+   - **No**: Bot continues with existing database, but sync is blocked
+5. **Sync Blocked**: Prevents accidental overwriting until resolved
+
+### Interactive Database Reset
+
+When a spreadsheet ID mismatch is detected, the bot will ask:
+
+```
+⚠️  WICHTIG: Spreadsheet-ID Mismatch erkannt!
+   Gespeicherte ID: [old_id]
+   Aktuelle ID: [new_id]
+   
+   Datenbank: X Spiele, Y Votes
+   Spreadsheet: Z Spiele, W Votes
+   
+   Möchtest du die Datenbank löschen und neu initialisieren? (ja/nein):
+```
+
+**Answer Options:**
+- `ja`, `j`, `yes`, `y` → Database deleted, reinitialized, migrated from new spreadsheet
+- `nein`, `n`, `no` → Bot continues with existing database (sync blocked)
+
+### Manual Database Reset
+
+If you prefer to manually reset:
+
+```bash
+# Delete the database
+rm votes.db  # Linux/macOS
+del votes.db  # Windows
+
+# Restart the bot - it will migrate from the spreadsheet
+python3 main.py
+```
+
+### Safety Check Details
+
+The bot performs these checks before every sync:
+- ✅ Spreadsheet ID matches stored ID
+- ✅ Data hash verification
+- ✅ Comparison of database vs spreadsheet data
+- ✅ Detection of newer data in spreadsheet
+
+**Result**: Your data is protected from accidental overwrites!
 
 ## ⚙️ Configuration Options
 
